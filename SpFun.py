@@ -25,23 +25,10 @@ def GetNeuronNames(argument, chosen_neuron_numbers):
 # choose neurons
 # 2 all neurons
 # 3 stable
-#%% load protocol 
-def f(data_folder):
-    return {
-        'data_1': "\protocol\protocol data1.xlsx",
-        'data_2': "\protocol\matcha160607-500+500ms.xlsx",
-        'data_3': "\protocol\data_3_matcha161122-500+500ms.xlsx"
-    }[data_folder]
 
-def load_protocol(data_folder, main_folder):
-    pr_path = main_folder + f(data_folder)
-    protocol = pd.read_excel (pr_path)
-    return protocol
-
-    
 #%% psth from dataset
 
-def load_dataset_from_mat_files(main_folder, protocol):
+def LoadDatasetFromMatFiles(main_folder, protocol):
     dataset = []
     number_of_indexes = np.size(protocol, axis=0)
     indexes = list(range(0,number_of_indexes))
@@ -68,33 +55,28 @@ def get_psths(type_id, picture_n, neuron, show_n, stimuli_ranges, dataset):
 #neuron = 1
 #show_n = 1
 #stimuli_ranges = set_A_ranges;
-
 #psth = SpFun.get_psths(type_id, picture_n, neuron, show_n, stimuli_ranges, dataset)
 
-def all_neurons_psth(type_id, picture_n, show_n, number_of_indexes,
+def AllNeuronsPsth(type_id, picture_n, show_n, number_of_indexes,
                 stimuli_ranges, dataset, signal_start_time = 0, signal_end_time = 1000):
     indexes = list(range(0,number_of_indexes))
     psths = [];
     signal_time = np.array(list(range(signal_start_time,signal_end_time)))
-    silent_neurons = []# neurons without any action
-    
+    silent_neurons = []# neurons without any action    
     for neuron in indexes:
         psth = get_psths(type_id, picture_n, neuron, show_n, stimuli_ranges, dataset)
         spike_times = signal_time[psth == 1]
         if (np.size(spike_times)) == 0:
             spike_times = np.zeros(1)
             silent_neurons.append(neuron)
-        psths.append(psth)
-    
+        psths.append(spike_times)    
     return silent_neurons, psths
-
 # Example
 #number_of_neurons = np.size(protocol, axis=0)
-
-#[silent_neurons, psths] = SpFun.all_neurons_psth(type_id, picture_n, show_n, number_of_neurons,
+#[silent_neurons, psths] = SpFun.AllNeuronsPsth(type_id, picture_n, show_n, number_of_neurons,
 #                stimuli_ranges, dataset, signal_start_time = 0, signal_end_time = 1000)
 
-def save_dataset_spike_trains(main_folder, dataset_name, dataset, shows_number, 
+def SaveDatasetSpikeTrains(main_folder, directory, data_folder, dataset, shows_number, 
                               pictures_number, stimuli_ranges, stimuli_names, protocol):
     types_number = len(stimuli_names)
     for type_id in range(0,types_number):
@@ -107,43 +89,40 @@ def save_dataset_spike_trains(main_folder, dataset_name, dataset, shows_number,
             shows_Silent_neurons = []
             shows_psth = []
             for show_n in range(0,shows_number):
-                silent_neurons, psth = all_neurons_psth(type_id, picture_n, show_n, number_of_neurons,
+                silent_neurons, psths = AllNeuronsPsth(type_id, picture_n, show_n, number_of_neurons,
                     stimuli_ranges, dataset)
+                #edges = [0, np.size(psth)]
+                #spike_times = list(range(0, np.size(psth)))
+                #spike_times = np.nonzero(np.array(psth, dtype=bool).flatten())
+                #spike_train = spk.SpikeTrain(spike_times, edges)
                 #shows_spike_trains.append(spike_trains)
                 shows_Silent_neurons.append(silent_neurons)
-                shows_psth.append(psth)
+                shows_psth.append(psths)
             #stim_spike_trains.append(shows_spike_trains)
             stim_Silent_neurons.append(shows_Silent_neurons)  
             stim_psth.append(shows_psth)
-        directory = main_folder + '/data/out/spike_trains/' + dataset_name + '/'
+        
         if not os.path.exists(directory):
             os.mkdir(directory)
-        filepath =  directory + str(type_id) + '_spike_trains' + '.pickle'
+        filepath =  directory + '/' + data_folder + '_' + str(type_id) +  '_trains.pickle'
         with open(filepath, 'wb') as f:
             pickle.dump(stim_psth, f)
         sys.stdout.write('.'); sys.stdout.flush();  # print a small progress bar
-
 # Example
 #dataset_name = 'data_3'
 #stimuli_ranges = set_A_ranges;
 #stimuli_names = setA_names
-
 #SpFun.save_dataset_spike_trains(main_folder, dataset_name, dataset, shows_number, pictures_number, stimuli_ranges, stimuli_names, protocol)
-#%%
-def loadSpikeTrain(folder_in, type_id):
-    filepath = folder_in + str(type_id) + '_spike_trains' + '.pickle'
+
+def LoadSpikeTrain(directory, data_folder, type_id):
+    filepath =  directory + '/' + data_folder + '_' + str(type_id) +  '_trains.pickle'
     with open(filepath, 'rb') as f:
         psth = pickle.load(f)
     return psth
 
-
-#%% Low-Level
-
-
-def spikeTrainFromInterval(start_time, end_time, stim_n, show_n, neuron_index, psth):
-    psth_interval = psth[stim_n][show_n][neuron_index][range(start_time,end_time)]
-    spike_times = list(range(0, end_time - start_time))
-    spike_times = np.array(spike_times)[psth_interval == 1]
+def SpikeTrainFromInterval(start_time, end_time, stim_n, show_n, neuron_index, psth):
+    data = np.array(psth[stim_n][show_n][neuron_index])
+    spike_times = data[(data >= start_time) & (data <= end_time)]
     edges = [0, end_time - start_time]
     silent_neuron = False
     if (np.size(spike_times)) == 0:
@@ -153,9 +132,9 @@ def spikeTrainFromInterval(start_time, end_time, stim_n, show_n, neuron_index, p
     
     return spike_train, silent_neuron
 
-#%% all shows all images, one type
+#% all shows all images, one type
 def SpikeDirections(folder_in, type_id, start_time, end_time):
-    psth = np.asarray(loadSpikeTrain(folder_in, type_id))
+    psth = np.asarray(LoadSpikeTrain(folder_in, type_id))
     number_of_neurons = np.size(psth,2)
     neurons = list(range(0,number_of_neurons))
     shows_number = np.size(psth,1)
@@ -166,14 +145,14 @@ def SpikeDirections(folder_in, type_id, start_time, end_time):
         for show_n in range(0,shows_number): # номер предъявления (1-30)
             spike_trains_36 = []
             for neuron in neurons:
-                st, silent_neuron = spikeTrainFromInterval(start_time, end_time, stim_n, show_n, neuron, psth)
+                st, silent_neuron = SpikeTrainFromInterval(start_time, end_time, stim_n, show_n, neuron, psth)
                 spike_trains_36.append(st)
             direction_l1 = spk.spike_directionality_matrix(spike_trains_36, max_tau = 25) #36x36
             direction_l2.append(direction_l1)
         directions_l3.append(direction_l2)
     return directions_l3
 
-#%% 15 vs 15 pictures
+#% 15 vs 15 pictures
 import sys
 
 def groupMeans(folder_in, group_number, direct, start_time, end_time):
@@ -199,66 +178,65 @@ def groupDiff(folder_in, baby, hide, direct, start_time, end_time):
     matrix_diff = np.mean(baby_means,0) - np.mean(hide_means,0);
     return(baby_means, hide_means, matrix_diff)
     
-#%%  inhibition
-
-def InhiBition(spike_times_1, spike_times_2, tau = 100):
-    inhibition_profile = np.array([])
-    for i in range(0,np.size(spike_times_1)):
-        if np.size(spike_times_2) > 0:
-            min_time = spike_times_1[i]
-            max_time = spike_times_1[i] + tau
-            more = spike_times_2 >= min_time
-            less = spike_times_2 <= max_time
-            after_first_sp2 = spike_times_1[i] > spike_times_2[0]
-            after_last_sp2 = spike_times_1[i] < spike_times_2[-1]
-            inhibit_1 = np.logical_and(sum(more & less) == 0, after_first_sp2 & after_last_sp2)
-            inhibition_profile = np.append(inhibition_profile, inhibit_1)    
-        else:
-            inhibition = 0
-    inhibition = np.mean(inhibition_profile)
-    if np.isnan(inhibition):
-        inhibition = 0
-    return inhibition, inhibition_profile
-#%% inhibit matrix
-def inhibitMatrix(spike_times_all, tau = 100):
-    inhibit_matrix_1 = np.array([])
-    for j in range(0, np.size(spike_times_all, 0)):
-        spike_times_1 = spike_times_all[j]
-        inhibit_matrix_2 = np.array([])
-        for i in range(0, np.size(spike_times_all, 0)):
-            spike_times_2 = spike_times_all[i]
-            inhibition, inhibition_profile = InhiBition(spike_times_1, spike_times_2, tau = tau)
-            inhibit_matrix_2 = np.append(inhibit_matrix_2, inhibition)
-        if j == 0:
-            inhibit_matrix_1 = inhibit_matrix_2;
-        else:
-            inhibit_matrix_1 = np.vstack((inhibit_matrix_1, inhibit_matrix_2))
+#%% graphs
+def G_one_picture(picture_mean, weight_on, all_nodes):
     
-    return inhibit_matrix_1
+    positive_direction = np.copy(picture_mean)
+    
+    positive_direction[positive_direction > 0] = 1;
+    positive_direction[positive_direction < 0] = 0;
+    
+    
+    import networkx as nx
+    G = nx.DiGraph()
+    # add neurons as nodes
+    if all_nodes:
+        #add all nodes
+        for neuron in range(0, np.size(picture_mean, 0)):
+            G.add_node(neuron)
+    else:
+        # add nodes with connections
+        for neuron in range(0, np.size(picture_mean, 0)):
+            con_profile = np.asarray(positive_direction)[neuron]
+            connections = np.argwhere(con_profile == 1)
+            if len(connections)>0:
+                G.add_node(neuron)
+    
+    #add edges
+    for neuron in range(0, np.size(picture_mean, 0)):
+        con_profile = np.asarray(positive_direction)[neuron]
+        connections = np.argwhere(con_profile == 1)
+        for con in range(0,np.size(connections)):
+            neuron2 = int(connections[con])
+            weight = picture_mean[neuron, neuron2]
+            G.add_edge(neuron, neuron2, weight=weight)
 
-#%% all shows all images, one type
-def inhibitOneType(folder_in, type_id, start_time, end_time):
-    psth = np.asarray(loadSpikeTrain(folder_in, type_id))
-    number_of_neurons = np.size(psth,2)
-    neurons = list(range(0,number_of_neurons))
-    shows_number = np.size(psth,1)
-    stims_number = np.size(psth,0)
-    inhibit_l3 = [];
-    for stim_n in range(0,stims_number): # номер картинки (1-15)
-        inhibit_l2 = [];
-        for show_n in range(0,shows_number): # номер предъявления (1-30)
-            spike_times_all = []
-            sp_all = psth[stim_n][show_n][:]
-            signal_time = np.array(list(range(0, np.size(sp_all, 1))))            
-            for neuron in neurons:
-                spike_time = signal_time[sp_all[neuron,:]==1]
-                spike_time = spike_time[spike_time > start_time]
-                spike_time = spike_time[spike_time < end_time]
-                spike_times_all.append(spike_time)# convert psth into times
-                
-            inhibit_matrix_1 = inhibitMatrix(spike_times_all, tau = 100)#36x36
-            inhibit_l2.append(inhibit_matrix_1)
-        inhibit_l3.append(inhibit_l2)
-        sys.stdout.write('.'); sys.stdout.flush();  # print a small progress bar
-    inhibit_l3 = np.asarray(inhibit_l3)        
-    return inhibit_l3
+    #% Degrees
+    if weight_on:
+        weight_string = 'weight'
+    else:
+        weight_string = 'None'
+    nodelist = list(range(0, np.size(picture_mean, 0)))
+    indegr = np.asarray(list(G.in_degree(nodelist, weight = weight_string)))[:,1]
+    outdegr = np.asarray(list(G.out_degree(nodelist, weight = weight_string)))[:,1]
+    eigen_centr = nx.eigenvector_centrality_numpy(G, weight = weight_string, max_iter=100)
+    eigen_centr = list(eigen_centr.values())
+    return G, indegr, outdegr
+#% graphs for all pictures
+def degrSet(per_pict_average_values,weight_on, all_nodes):
+    IndegrSet = [];
+    OutdegrSet = [];
+    G_set = [];
+    pictures_number = np.size(per_pict_average_values, 0)
+    for pict_n in range(0,pictures_number):
+        picture_mean = per_pict_average_values[pict_n, :,:]
+        G, indegr, outdegr = G_one_picture(picture_mean,weight_on, all_nodes)
+        IndegrSet.append(indegr)
+        OutdegrSet.append(outdegr)
+        G_set.append(G)
+    return IndegrSet, OutdegrSet, G_set
+
+#%% statistics
+
+
+
