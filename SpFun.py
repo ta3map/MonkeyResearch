@@ -39,6 +39,10 @@ def LoadDatasetFromMatFiles(main_folder, protocol):
         dataset.append(mat)
     return dataset
 
+
+
+
+#%%
 def get_psths(type_id, picture_n, neuron, show_n, stimuli_ranges, dataset):
     mat = dataset[neuron]
     stim = stimuli_ranges[type_id][picture_n]
@@ -49,6 +53,8 @@ def get_psths(type_id, picture_n, neuron, show_n, stimuli_ranges, dataset):
     psth = np.squeeze(psth)
     return psth
 
+    
+#%%
 # Example
 #type_id = 5# faceBaby
 #picture_n = 2# picture

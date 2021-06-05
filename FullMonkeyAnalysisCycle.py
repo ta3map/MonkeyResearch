@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pickle
 
 
-main_folder = 'F:\YandexDisk\MonkeysDatas'
+main_folder = 'F:\YandexDisk\MonkeysDatas\MonkeyResearch'
 import os
 os.chdir(main_folder + '/analysis')
 import SpFun
@@ -52,7 +52,8 @@ for s in range(1,stimuli_number+1):
     
 # Whole dataset from mat files
 dataset = SpFun.LoadDatasetFromMatFiles(main_folder + '/data', protocol)
-
+#%% SpikeTrains from dataset
+ 
 #%% save Spike trains
 directory = main_folder + '/out'
 SpFun.SaveDatasetSpikeTrains(main_folder, directory, data_folder, dataset, shows_number, pictures_number, set_ranges, set_names, protocol)
