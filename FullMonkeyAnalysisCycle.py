@@ -13,12 +13,12 @@ import matplotlib.pyplot as plt
 import pickle
 
 
-main_folder = 'F:\YandexDisk\MonkeysDatas\MonkeyResearch'
+main_folder = 'F:\YandexDisk\MonkeysDatas'
 import os
 os.chdir(main_folder + '/analysis')
 import SpFun
 
-data_folder = 'data_1'
+data_folder = 'data_2'
 
 # read protocol
 filepath = main_folder + '/protocol/' + data_folder + '.xlsx'

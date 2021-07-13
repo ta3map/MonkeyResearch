@@ -225,8 +225,8 @@ def G_one_picture(picture_mean, weight_on, all_nodes):
     nodelist = list(range(0, np.size(picture_mean, 0)))
     indegr = np.asarray(list(G.in_degree(nodelist, weight = weight_string)))[:,1]
     outdegr = np.asarray(list(G.out_degree(nodelist, weight = weight_string)))[:,1]
-    eigen_centr = nx.eigenvector_centrality_numpy(G, weight = weight_string, max_iter=100)
-    eigen_centr = list(eigen_centr.values())
+    #eigen_centr = nx.eigenvector_centrality_numpy(G, weight = weight_string, max_iter=100)
+    #eigen_centr = list(eigen_centr.values())
     return G, indegr, outdegr
 #% graphs for all pictures
 def degrSet(per_pict_average_values,weight_on, all_nodes):

@@ -52,8 +52,9 @@ p = 0# picture
 stim = set_ranges[c][p]
 stimIDs = np.array(mat['spikeData']['stimID'][0].tolist()).flatten()
 found_ids = np.where(stimIDs==stim)
-s = 1 # show
+s = 0 # show
 spikeTrain = mat['spikeData']['spikeTrain'][0][found_ids][s]
+print(spikeTrain)
 #%% SpikeTrains from dataset
 
 def getMatData(dataset, data_name, stimuli_number, pictures_number, shows_number):
@@ -78,4 +79,8 @@ def getMatData(dataset, data_name, stimuli_number, pictures_number, shows_number
         data_n.append(data_c)
     return data_n
 
-spikeTrains = getMatData(dataset, 'spikeTrain', stimuli_number, pictures_number)
+spike_trains = np.array(getMatData(dataset, 'spikeTrain', stimuli_number, pictures_number, shows_number))
+#%% save data
+filepath = main_folder + '/MonkeyResearch/data/' + data_folder
+with open(filepath, 'wb') as f:
+    pickle.dump(spike_trains, f)
